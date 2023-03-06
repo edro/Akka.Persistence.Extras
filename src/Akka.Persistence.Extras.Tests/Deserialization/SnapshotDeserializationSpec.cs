@@ -15,7 +15,7 @@ namespace Akka.Persistence.Extras.Tests.Deserialization
     public class SnapshotDeserializationSpec : Akka.TestKit.Xunit2.TestKit
     {
         private const string TargetDir = "target/snapshots";
-        
+
         public SnapshotDeserializationSpec(ITestOutputHelper output)
             : base(ConfigurationFactory.ParseString(
                     @"akka.test.timefactor = 3
@@ -35,23 +35,23 @@ namespace Akka.Persistence.Extras.Tests.Deserialization
             var atLeastOnceDeliveryActor = Sys.ActorOf(Props.Create(() => new AtLeastOnceDeliverySender(recipientActor)), "delivery1");
 
             // Wait until de-duplication actor snapshot is done
-            await AwaitConditionAsync(() => Directory.GetFiles(TargetDir, "snapshot-receiver-*").Any(), TimeSpan.FromSeconds(60));
-            
+            await AwaitConditionAsync(() => Task.FromResult(Directory.GetFiles(TargetDir, "snapshot-receiver-*").Any()), TimeSpan.FromSeconds(60));
+
             // Stop actors
             Sys.Terminate().Wait();
 
             // Load snapshot bytes
             var snapshotPath = Directory.GetFiles(TargetDir, "snapshot-receiver-*").First();
             var snapshotBytes = await File.ReadAllBytesAsync(snapshotPath);
-            
+
             // Get configured ActorSystem
             var persistenceConfig = ConfigurationFactory.FromResource<ExtraPersistence>("Akka.Persistence.Extras.Config.akka.persistence.extras.conf");
             var system = ActorSystem.Create("Deserializer", persistenceConfig);
-            
+
             // Deserialize snapshot
             var persistenceMessageSerializer = new PersistenceSnapshotSerializer(system as ExtendedActorSystem);
             var snapshot = persistenceMessageSerializer.FromBinary<Akka.Persistence.Serialization.Snapshot>(snapshotBytes);
-            
+
             // Assert that snapshot contains real data
             snapshot.Data.Should().BeOfType<ReceiverStateSnapshot>().Which.TrackedIds.Should().NotBeEmpty();
 
@@ -63,13 +63,13 @@ namespace Akka.Persistence.Extras.Tests.Deserialization
             EnsureDirectoryDeleted();
             Directory.CreateDirectory(TargetDir);
         }
-        
+
         private void EnsureDirectoryDeleted()
         {
             if (Directory.Exists(TargetDir))
                 Directory.Delete(TargetDir, true);
         }
-        
+
         public class AtLeastOnceDeliverySender : AtLeastOnceDeliveryReceiveActor
         {
             private const string Characters = "AB";
@@ -95,9 +95,9 @@ namespace Akka.Persistence.Extras.Tests.Deserialization
             {
                 _recurringMessageSend = Context.System.Scheduler.ScheduleTellRepeatedlyCancelable(
                     TimeSpan.Zero,
-                    TimeSpan.FromMilliseconds(100), 
-                    Self, 
-                    new DoSend(), 
+                    TimeSpan.FromMilliseconds(100),
+                    Self,
+                    new DoSend(),
                     Self);
 
                 base.PreStart();
@@ -112,7 +112,7 @@ namespace Akka.Persistence.Extras.Tests.Deserialization
 
             private class DoSend { }
         }
-        
+
         public class MyRecipientActor : DeDuplicatingReceiveActor
         {
             public MyRecipientActor()
@@ -127,7 +127,7 @@ namespace Akka.Persistence.Extras.Tests.Deserialization
                 return new ReliableDeliveryAck(confirmationId);
             }
         }
-        
+
         public class ReliableDeliveryAck
         {
             public ReliableDeliveryAck(long messageId)

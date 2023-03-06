@@ -5,9 +5,10 @@
 // -----------------------------------------------------------------------
 
 using System;
-using System.Diagnostics;
 using Akka.Actor;
+using Akka.Event;
 using Akka.Util.Internal;
+using Debug = System.Diagnostics.Debug;
 
 namespace Akka.Persistence.Extras
 {
